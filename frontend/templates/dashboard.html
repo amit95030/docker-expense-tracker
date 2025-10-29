@@ -1,0 +1,13 @@
+<h2>Your Expenses</h2>
+<a href="/add_expense">Add Expense</a> | <a href="/logout">Logout</a>
+<table border="1" cellpadding="5">
+<tr><th>Category</th><th>Amount</th><th>Note</th><th>Date</th></tr>
+{% for e in expenses %}
+<tr>
+<td>{{e.category}}</td>
+<td>{{e.amount}}</td>
+<td>{{e.note}}</td>
+<td>{{e.date}}</td>
+</tr>
+{% endfor %}
+</table>

@@ -1,0 +1,8 @@
+<h2>Login</h2>
+<form method="post">
+  <input name="username" placeholder="Username" required/>
+  <input name="password" placeholder="Password" type="password" required/>
+  <button type="submit">Login</button>
+  {% if error %}<p style="color:red">{{error}}</p>{% endif %}
+</form>
+<a href="/register">Register</a>

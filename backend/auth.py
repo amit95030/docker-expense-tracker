@@ -1,37 +1,56 @@
 from flask import Blueprint, request, jsonify
-import mysql.connector
+from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
+import os
 from models import get_db_connection
+from flask import current_app as app
 
-app = Blueprint('auth', __name__)
-app.secret_key = 'supersecretkey'
+auth = Blueprint('auth', __name__)
 
-@app.route('/register', methods=['POST'])
+@auth.route('/register', methods=['POST'])
 def register():
     data = request.json
-    hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role', 'user')  # Optional, default = user
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO users (username, password) VALUES (%s,%s)", 
-                   (data['username'], hashed_password))
+
+    # check if user exists
+    cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
+    if cursor.fetchone():
+        return jsonify({'message': 'User already exists!'}), 400
+
+    hashed_pw = generate_password_hash(password)
+    cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)", (username, hashed_pw, role))
     conn.commit()
     cursor.close()
     conn.close()
-    return jsonify({"message": "User registered successfully"})
 
-@app.route('/login', methods=['POST'])
+    return jsonify({'message': 'User registered successfully!'})
+
+@auth.route('/login', methods=['POST'])
 def login():
     data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE username=%s", (data['username'],))
+    cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
-    if not user or not check_password_hash(user['password'], data['password']):
-        return jsonify({"message": "Invalid credentials"}), 401
-    token = jwt.encode({'user_id': user['id'], 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)},
-                       'supersecretkey', algorithm='HS256')
-    return jsonify({'token': token})
+
+    if not user or not check_password_hash(user['password_hash'], password):
+        return jsonify({'message': 'Invalid credentials!'}), 401
+
+    token = jwt.encode(
+        {'user_id': user['id'], 'role': user['role'], 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=8)},
+        app.config['SECRET_KEY'],
+        algorithm='HS256'
+    )
+
+    return jsonify({'token': token, 'role': user['role']})

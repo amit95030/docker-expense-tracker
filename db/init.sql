@@ -4,8 +4,9 @@ USE expensesdb;
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('user', 'admin') DEFAULT 'user'
 );
 
 CREATE TABLE IF NOT EXISTS expenses (
@@ -15,5 +16,5 @@ CREATE TABLE IF NOT EXISTS expenses (
     amount DECIMAL(10,2),
     note TEXT,
     date DATE,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
